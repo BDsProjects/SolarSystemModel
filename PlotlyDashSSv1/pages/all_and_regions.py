@@ -22,7 +22,7 @@ layout = html.Div([
     dcc.Graph(
         figure=sh.build_fig(
             ['Mercury', 'Venus', 'Earth', 'Ceres', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Haumea', 'Makemake', 'Eris', 'Sedna'], 
-            1000, 
+            5000, 
             "All Planets with Solar System Regions",
             include_regions=True
         ),
