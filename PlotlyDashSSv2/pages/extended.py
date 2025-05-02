@@ -1,6 +1,6 @@
 # pages/extended.py
 from dash import html, dcc, register_page
-import solar_helpers as sh
+import solar_helpers_galactic as sh
 
 register_page(__name__, path='/extended', name='Extended')
 layout = html.Div([
