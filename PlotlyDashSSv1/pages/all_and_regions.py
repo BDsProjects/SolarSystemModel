@@ -48,8 +48,8 @@ layout = html.Div([
             include_regions=True,
             include_ellipsoid=True,  # Enable the ellipsoid
             ellipsoid_params={
-                'inner_edge': 120,
-                'length': 300,
+                'inner_edge': -120,
+                'length': 900,
                 'width_factor': 0.75,
                 'height_factor': 0.5,
                 'color': 'rgba(255,100,100,0.3)', 

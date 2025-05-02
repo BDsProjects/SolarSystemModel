@@ -597,7 +597,7 @@ def create_shell(inner_radius, outer_radius=None, color='gray', opacity=0.2, poi
                            hoverinfo='none', showlegend=True)
 
 # Helper: create a see-through ellipsoid
-def create_ellipsoid(inner_edge=120, length=300, width_factor=0.75, height_factor=0.5, color='rgba(255,100,100,0.3)', opacity=0.2, name="Extended Region", points=40):
+def create_ellipsoid(inner_edge=0, length=950, width_factor=0.75, height_factor=0.5, color='rgba(255,100,100,0.3)', opacity=0.2, name="Extended Region", points=40):
     """
     Create a see-through ellipsoid with left edge at a specified distance, extending opposite from the sun.
     
