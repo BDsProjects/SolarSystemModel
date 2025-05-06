@@ -8,7 +8,7 @@ url = 'https://ssd.jpl.nasa.gov/api/horizons.api'
 spk_filename = 'spk_file.bsp'
 
 # Define the time span:
-start_time = '2030-01-01'
+start_time = '2025-01-01'
 stop_time = '2031-01-01'
 
 # Get the requested SPK-ID from the command-line:
