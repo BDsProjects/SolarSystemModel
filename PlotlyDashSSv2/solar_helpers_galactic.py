@@ -278,6 +278,65 @@ def create_shell(inner_radius, outer_radius=None, color='gray', opacity=0.2, poi
 #     - points: Resolution of the shell mesh
 #     - use_galactic: Whether to convert to galactic coordinates
 
+def create_bow_shock_ellipsoid(standoff_distance=130, base_radius=180, length=1500, 
+                             width_factor=0.8, height_factor=0.5, 
+                             color='rgba(255,150,100,0.25)', opacity=0.2, 
+                             points=50, use_galactic=False):
+    """
+    Create a bow shock as an ellipsoid.
+    
+    Parameters:
+    - standoff_distance: Distance from sun to bow shock nose (AU)
+    - base_radius: Base radius of the ellipsoid (AU)
+    - length: Length of the ellipsoid (AU)
+    - width_factor: Width factor relative to base_radius
+    - height_factor: Height factor relative to base_radius
+    - color: Color of the bow shock
+    - opacity: Opacity of the bow shock
+    - points: Resolution of the mesh
+    - use_galactic: Whether to convert to galactic coordinates
+    
+    Returns:
+    - A Plotly Surface trace object
+    """
+    # Create parametric surface for a full ellipsoid
+    u = np.linspace(0, 2*np.pi, points)
+    v = np.linspace(0, np.pi, points)
+    u_grid, v_grid = np.meshgrid(u, v)
+    
+    # Calculate the center position (shifted forward from origin)
+    center_x = standoff_distance - length/2
+    
+    # Semi-axes of the ellipsoid
+    a = length/2
+    b = base_radius * width_factor
+    c = base_radius * height_factor
+    
+    # Calculate coordinates of the ellipsoid
+    x = center_x + a * np.cos(u_grid) * np.sin(v_grid)
+    y = b * np.sin(u_grid) * np.sin(v_grid)
+    z = c * np.cos(v_grid)
+    
+    # Convert to galactic coordinates if requested
+    if use_galactic:
+        x, y, z = galactic_converter.ecliptic_to_galactic(x, y, z)
+    
+    return go.Surface(
+        x=x, y=y, z=z,
+        colorscale=[[0, color], [1, color]],
+        opacity=opacity, 
+        showscale=False,
+        name='Bow Shock',
+        hoverinfo='name',
+        lighting=dict(
+            ambient=0.6,
+            diffuse=0.7,
+            specular=0.1,
+            roughness=0.9,
+            fresnel=0.1
+        )
+    )
+
 # Helper: create a deformed ellipsoid for the termination shock
 def create_termination_shock(inner_radius=117, outer_radius=120, tailward_offset=32, 
                             north_distance=27, port_side=12, color='rgba(255,100,100,0.3)', 
@@ -496,6 +555,66 @@ def make_traces_with_heliosphere(planet_list, include_regions=True, use_planet_s
         traces.append(bow_trace)
     
     return traces
+
+# Updated function to create bow shock as an ellipsoid
+# def create_bow_shock_ellipsoid(standoff_distance=130, base_radius=180, length=1500, 
+#                              width_factor=0.8, height_factor=0.5, 
+#                              color='rgba(255,150,100,0.25)', opacity=0.2, 
+#                              points=50, use_galactic=False):
+#     """
+#     Create a bow shock as an ellipsoid.
+    
+#     Parameters:
+#     - standoff_distance: Distance from sun to bow shock nose (AU)
+#     - base_radius: Base radius of the ellipsoid (AU)
+#     - length: Length of the ellipsoid (AU)
+#     - width_factor: Width factor relative to base_radius
+#     - height_factor: Height factor relative to base_radius
+#     - color: Color of the bow shock
+#     - opacity: Opacity of the bow shock
+#     - points: Resolution of the mesh
+#     - use_galactic: Whether to convert to galactic coordinates
+    
+#     Returns:
+#     - A Plotly Surface trace object
+#     """
+#     # Create parametric surface for a full ellipsoid
+#     u = np.linspace(0, 2*np.pi, points)
+#     v = np.linspace(0, np.pi, points)
+#     u_grid, v_grid = np.meshgrid(u, v)
+    
+#     # Calculate the center position (shifted forward from origin)
+#     center_x = standoff_distance - length/2
+    
+#     # Semi-axes of the ellipsoid
+#     a = length/2
+#     b = base_radius * width_factor
+#     c = base_radius * height_factor
+    
+#     # Calculate coordinates of the ellipsoid
+#     x = center_x + a * np.cos(u_grid) * np.sin(v_grid)
+#     y = b * np.sin(u_grid) * np.sin(v_grid)
+#     z = c * np.cos(v_grid)
+    
+#     # Convert to galactic coordinates if requested
+#     if use_galactic:
+#         x, y, z = galactic_converter.ecliptic_to_galactic(x, y, z)
+    
+#     return go.Surface(
+#         x=x, y=y, z=z,
+#         colorscale=[[0, color], [1, color]],
+#         opacity=opacity, 
+#         showscale=False,
+#         name='Bow Shock',
+#         hoverinfo='name',
+#         lighting=dict(
+#             ambient=0.6,
+#             diffuse=0.7,
+#             specular=0.1,
+#             roughness=0.9,
+#             fresnel=0.1
+#         )
+#     )
 
 # Enhanced build_fig function that uses the new traces
 def build_heliosphere_fig(subset, rng, title, include_regions=True, include_oort=False, 
