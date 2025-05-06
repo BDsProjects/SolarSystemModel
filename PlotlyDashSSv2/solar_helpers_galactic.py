@@ -266,7 +266,7 @@ def create_shell(inner_radius, outer_radius=None, color='gray', opacity=0.2, poi
                            hoverinfo='none', showlegend=True)
     
 # # Helper: create a shell for the termination shock (updated for galactic coordinate option)
-# def create_termination_shock(inner_radius, outer_radius, color='rgba(255,100,100,0.3)', opacity=0.2, points=40, use_galactic=False):
+#def create_termination_shock(inner_radius, outer_radius, color='rgba(255,100,100,0.3)', opacity=0.2, points=40, use_galactic=False):
 #     """
 #     Create a shell for the termination shock.
     
@@ -277,37 +277,349 @@ def create_shell(inner_radius, outer_radius=None, color='gray', opacity=0.2, poi
 #     - opacity: Opacity of the shell
 #     - points: Resolution of the shell mesh
 #     - use_galactic: Whether to convert to galactic coordinates
-    
-#     Returns:
-#     - A Plotly Surface trace object
-#     """
 
-#     u, v = np.mgrid[0:2*np.pi:resolution*1j, 0:np.pi:resolution//2*1j]
+# Helper: create a deformed ellipsoid for the termination shock
+def create_termination_shock(inner_radius=117, outer_radius=120, tailward_offset=32, 
+                            north_distance=27, port_side=12, color='rgba(255,100,100,0.3)', 
+                            opacity=0.2, points=50, use_galactic=False):
+    """
+    Create a deformed ellipsoid to represent the heliosphere's termination shock.
     
-#     # Convert center to galactic coordinates if requested
-#     if use_galactic:
-#         x, y, z = galactic_converter.ecliptic_to_galactic(x, y, z)
+    Parameters:
+    - inner_radius: Base radius for the shock in the nose direction (AU)
+    - outer_radius: Extended radius for the shock in the tail direction (AU)
+    - tailward_offset: Extra distance in the tail direction (AU)
+    - north_distance: Extra extension in the north direction (AU)
+    - port_side: Extra extension on the port side (AU)
+    - color: Color of the termination shock
+    - opacity: Opacity of the termination shock
+    - points: Resolution of the mesh
+    - use_galactic: Whether to convert to galactic coordinates
     
-#     # Create sphere surface coordinates
-#     sphere_x = x + radius * np.cos(u) * np.sin(v)
-#     sphere_y = y + radius * np.sin(u) * np.sin(v)
-#     sphere_z = z + radius * np.cos(v)
+    Returns:
+    - A Plotly Surface trace object
+    """
+    # Create parametric surface meshgrid
+    u = np.linspace(0, 2*np.pi, points)
+    v = np.linspace(0, np.pi, points)
+    u_grid, v_grid = np.meshgrid(u, v)
     
-#     return go.Surface(
-#         x=sphere_x, y=sphere_y, z=sphere_z,
-#         colorscale=[[0, color], [1, color]],
-#         opacity=1.0, 
-#         showscale=False,
-#         name=name,
-#         hoverinfo='name',
-#         lighting=dict(
-#             ambient=0.8,  # Increase ambient light to see colors better
-#             diffuse=0.9,
-#             specular=0.3,
-#             roughness=0.5,
-#             fresnel=0.2
-#         )
-#     )
+    # Base ellipsoid parameters
+    a = outer_radius  # Semi-major axis in tail direction (X)
+    b = inner_radius  # Semi-minor axis in side directions (Y)
+    c = inner_radius  # Semi-minor axis in polar directions (Z)
+    
+    # Apply deformations for the asymmetric shape
+    # X direction (Sun-tail line)
+    x_base = a * np.cos(u_grid) * np.sin(v_grid)
+    # Apply tail deformation (elongate in -X direction)
+    x = np.where(x_base < 0, 
+                 x_base * (1 + tailward_offset/a), 
+                 x_base * 0.8)  # Compress slightly in nose direction
+    
+    # Y direction (port-starboard)
+    y_base = b * np.sin(u_grid) * np.sin(v_grid)
+    # Apply port side deformation
+    y = np.where(y_base < 0,
+                y_base * (1 + port_side/b),
+                y_base)
+    
+    # Z direction (north-south)
+    z_base = c * np.cos(v_grid)
+    # Apply north deformation
+    z = np.where(z_base > 0,
+                z_base * (1 + north_distance/c),
+                z_base * 0.9)  # Slightly flatten the south side
+    
+    # Convert to galactic coordinates if requested
+    if use_galactic:
+        x, y, z = galactic_converter.ecliptic_to_galactic(x, y, z)
+    
+    return go.Surface(
+        x=x, y=y, z=z,
+        colorscale=[[0, color], [1, color]],
+        opacity=opacity, 
+        showscale=False,
+        name='Termination Shock',
+        hoverinfo='name',
+        lighting=dict(
+            ambient=0.7,
+            diffuse=0.8,
+            specular=0.2,
+            roughness=0.7,
+            fresnel=0.2
+        )
+    )
+
+# Also add a heliotail function to create the extended tail feature
+def create_heliotail(base_radius=120, length=1000, width_factor=0.6, height_factor=0.5,
+                   color='rgba(200,100,100,0.2)', opacity=0.15, points=40, use_galactic=False):
+    """
+    Create an elongated tail structure extending from the termination shock.
+    
+    Parameters:
+    - base_radius: Radius at the base of the tail (AU)
+    - length: Length of the tail extending backward (AU)
+    - width_factor, height_factor: Factors to determine tail width and height
+    - color: Color of the heliotail
+    - opacity: Opacity of the heliotail
+    - points: Resolution of the tail mesh
+    - use_galactic: Whether to convert to galactic coordinates
+    
+    Returns:
+    - A Plotly Surface trace object
+    """
+    # Create parametric cone surface
+    u = np.linspace(0, 2*np.pi, points)
+    v = np.linspace(0, 1, points//2)  # v parameter goes from base to tip
+    u_grid, v_grid = np.meshgrid(u, v)
+    
+    # Calculate tapering radius
+    radius = base_radius * (1 - v_grid*0.8)  # Taper to 20% of original size
+    
+    # Calculate coordinates with elongation in -X direction
+    x = -v_grid * length
+    y = radius * width_factor * np.cos(u_grid)
+    z = radius * height_factor * np.sin(u_grid)
+    
+    # Convert to galactic coordinates if requested
+    if use_galactic:
+        x, y, z = galactic_converter.ecliptic_to_galactic(x, y, z)
+    
+    return go.Surface(
+        x=x, y=y, z=z,
+        colorscale=[[0, color], [1, color]],
+        opacity=opacity, 
+        showscale=False,
+        name='Heliotail',
+        hoverinfo='name',
+        lighting=dict(
+            ambient=0.6,
+            diffuse=0.7,
+            specular=0.1,
+            roughness=0.8,
+            fresnel=0.1
+        )
+    )
+
+# Additional function for bow shock ahead of heliosphere
+def create_bow_shock(standoff_distance=40, radius=130, thickness=15, 
+                   color='rgba(255,150,100,0.25)', opacity=0.2, points=50, use_galactic=False):
+    """
+    Create a bow shock surface ahead of the heliosphere.
+    
+    Parameters:
+    - standoff_distance: Distance from sun to bow shock nose (AU)
+    - radius: Radius of the bow shock at its widest (AU)
+    - thickness: Thickness of the bow shock layer (AU)
+    - color: Color of the bow shock
+    - opacity: Opacity of the bow shock
+    - points: Resolution of the bow shock mesh
+    - use_galactic: Whether to convert to galactic coordinates
+    
+    Returns:
+    - A Plotly Surface trace object
+    """
+    # Create parametric surface for a partial ellipsoid (front half only)
+    u = np.linspace(-np.pi/2, np.pi/2, points)  # Only front half
+    v = np.linspace(0, np.pi, points//2)
+    u_grid, v_grid = np.meshgrid(u, v)
+    
+    # Calculate coordinates of a paraboloid
+    # We use a coefficient to make it more parabolic
+    parabola_coef = 0.008
+    x = standoff_distance + thickness * np.cos(u_grid) * np.sin(v_grid)
+    y_base = radius * np.sin(u_grid) * np.sin(v_grid)
+    z_base = radius * np.cos(v_grid)
+    
+    # Apply parabolic deformation
+    x_squared = np.maximum(0, x - standoff_distance)**2
+    y = y_base + parabola_coef * x_squared * np.sign(y_base)
+    z = z_base + parabola_coef * x_squared * np.sign(z_base)
+    
+    # Convert to galactic coordinates if requested
+    if use_galactic:
+        x, y, z = galactic_converter.ecliptic_to_galactic(x, y, z)
+    
+    return go.Surface(
+        x=x, y=y, z=z,
+        colorscale=[[0, color], [1, color]],
+        opacity=opacity, 
+        showscale=False,
+        name='Bow Shock',
+        hoverinfo='name',
+        lighting=dict(
+            ambient=0.6,
+            diffuse=0.7,
+            specular=0.1,
+            roughness=0.9,
+            fresnel=0.1
+        )
+    )
+
+# Update the make_traces function to include these new components
+def make_traces_with_heliosphere(planet_list, include_regions=True, use_planet_spheres=True, 
+                              include_ellipsoid=False, ellipsoid_params=None, use_galactic=False,
+                              show_termination_shock=True, show_heliotail=True, show_bow_shock=True):
+    """
+    Enhanced version of make_traces that includes heliosphere boundary features
+    """
+    # Get basic traces from original function
+    traces = make_traces(planet_list, include_regions, use_planet_spheres, 
+                       include_ellipsoid, ellipsoid_params, use_galactic)
+    
+    # Add termination shock if requested
+    if show_termination_shock:
+        ts_params = solar_regions['Termination Shock']
+        ts_trace = create_termination_shock(
+            ts_params['inner_radius'], ts_params['outer_radius'],
+            ts_params['tailward_offset'], ts_params['north_distance'],
+            ts_params['port_side'], ts_params['color'], ts_params['opacity'],
+            use_galactic=use_galactic
+        )
+        traces.append(ts_trace)
+    
+    # Add heliotail if requested
+    if show_heliotail:
+        # Use termination shock parameters to match dimensions
+        ts_params = solar_regions['Termination Shock']
+        tail_trace = create_heliotail(
+            base_radius=ts_params['outer_radius'],
+            length=800,  # Reasonable length for visualization
+            use_galactic=use_galactic
+        )
+        traces.append(tail_trace)
+    
+    # Add bow shock if requested
+    if show_bow_shock:
+        bow_trace = create_bow_shock(use_galactic=use_galactic)
+        traces.append(bow_trace)
+    
+    return traces
+
+# Enhanced build_fig function that uses the new traces
+def build_heliosphere_fig(subset, rng, title, include_regions=True, include_oort=False, 
+                        use_planet_spheres=True, include_ellipsoid=False, ellipsoid_params=None, 
+                        use_galactic=False, show_termination_shock=True, 
+                        show_heliotail=True, show_bow_shock=True):
+    
+    traces = make_traces_with_heliosphere(
+        subset, include_regions, use_planet_spheres, 
+        include_ellipsoid, ellipsoid_params, use_galactic,
+        show_termination_shock, show_heliotail, show_bow_shock
+    )
+    
+    # Add Oort Cloud separately if requested (only for very large scale views)
+    if include_oort:
+        oc_params = solar_regions['Oort Cloud']
+        oc_trace = create_shell(
+            oc_params['inner_radius'], oc_params['outer_radius'], 
+            oc_params['color'], oc_params['opacity'], use_galactic=use_galactic
+        )
+        oc_trace.name = 'Oort Cloud'
+        traces.append(oc_trace)
+    
+    # Set up axis labels based on coordinate system
+    if use_galactic:
+        x_label = 'X (Galactic Center Direction, AU)'
+        y_label = 'Y (Galactic Rotation Direction, AU)'
+        z_label = 'Z (North Galactic Pole, AU)'
+        # Update title to indicate galactic coordinates
+        title = f"{title} (Galactic Coordinates)"
+    else:
+        x_label = 'X (AU)'
+        y_label = 'Y (AU)'
+        z_label = 'Z (AU)'
+    
+    fig = go.Figure(data=traces)
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(range=[-rng,rng], title=x_label),
+            yaxis=dict(range=[-rng,rng], title=y_label),
+            zaxis=dict(range=[-rng,rng], title=z_label),
+            aspectmode='cube',  # Equal scaling but better use of space
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.5)),  # Adjust camera position
+        ),
+        margin=dict(l=10, r=10, t=50, b=10),  # Reduced margins
+        title=title,
+        height=700,  # Set explicit height
+        width=700,  # Set explicit width
+        autosize=True,  # Enable autosize
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        )
+    )
+    return fig
+
+# Example function to showcase the heliosphere
+def heliosphere_demo(view_range=200):
+    """
+    Create a visualization of the heliosphere including termination shock, heliotail, and bow shock
+    
+    Parameters:
+    -----------
+    view_range : float
+        Range for the visualization in AU
+        
+    Returns:
+    --------
+    plotly.graph_objects.Figure
+        Figure with the heliosphere visualization
+    """
+    # Use outer planets for scale reference
+    planets = ['Jupiter', 'Saturn', 'Uranus', 'Neptune']
+    
+    # Create the figure with heliosphere components
+    fig = build_heliosphere_fig(
+        planets, view_range, 
+        "Solar System Heliosphere",
+        include_regions=True,
+        use_planet_spheres=True,
+        show_termination_shock=True,
+        show_heliotail=True,
+        show_bow_shock=True
+    )
+    
+    # Add annotations to highlight components
+    fig.update_layout(
+        scene=dict(
+            annotations=[
+                dict(
+                    x=100, y=0, z=0,
+                    text="Termination Shock",
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor='red'
+                ),
+                dict(
+                    x=-300, y=0, z=0,
+                    text="Heliotail",
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor='darkred'
+                ),
+                dict(
+                    x=130, y=0, z=0,
+                    text="Bow Shock",
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor='orange'
+                )
+            ]
+        )
+    )
+    
+    return fig
+
 
 
 
@@ -364,6 +676,166 @@ def create_ellipsoid(inner_edge=0, length=950, width_factor=0.75, height_factor=
             fresnel=0.2
         )
     )
+
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+# Update the solar_regions dictionary to add missing heliosheath parameters
+solar_regions.update({
+    'Termination Shock': {
+        'inner_radius': 80,    # Inner radius of termination shock (AU)
+        'outer_radius': 100,   # Outer radius of termination shock (AU)
+        'tailward_offset': 80, # Tailward extension (more stretched in -X direction)
+        'north_distance': 20,  # North pole extension (more stretched in +Z)
+        'port_side': 15,       # Port side extension (more stretched in -Y)
+        'color': 'rgba(255,100,100,0.3)',
+        'opacity': 0.3
+    },
+    'Bow Shock': {
+        'standoff_distance': 130,  # Distance from sun to bow shock nose (AU)
+        'radius': 180,             # Radius of bow shock at widest (AU)
+        'thickness': 15,           # Thickness of bow shock layer (AU)
+        'color': 'rgba(255,150,100,0.25)',
+        'opacity': 0.2
+    },
+    'Heliotail': {
+        'base_radius': 100,    # Base radius where tail starts (AU)
+        'length': 800,         # Length of tail extending backward (AU)
+        'width_factor': 0.6,   # Width relative to base radius
+        'height_factor': 0.5,  # Height relative to base radius
+        'color': 'rgba(200,100,100,0.2)',
+        'opacity': 0.15
+    }
+})
+
+# Example 1: Create a simple demonstration of the termination shock
+def demo_termination_shock():
+    # Use outer planets as reference points
+    planets = ['Jupiter', 'Saturn', 'Uranus', 'Neptune']
+    
+    # Create figure with termination shock
+    fig = build_heliosphere_fig(
+        planets, 
+        rng=200,  # View range in AU
+        title="Solar System with Termination Shock",
+        show_termination_shock=True,
+        show_heliotail=False,
+        show_bow_shock=False
+    )
+    
+    return fig
+
+# Example 2: Full heliosphere visualization with all components
+def full_heliosphere_visualization():
+    # Include outer planets for scale reference
+    planets = ['Jupiter', 'Saturn', 'Uranus', 'Neptune']
+    
+    # Create comprehensive visualization
+    fig = build_heliosphere_fig(
+        planets,
+        rng=400,  # Larger view to see entire heliotail
+        title="Complete Heliosphere Visualization",
+        show_termination_shock=True,
+        show_heliotail=True,
+        show_bow_shock=True
+    )
+    
+    # Add text annotations to highlight key features
+    fig.update_layout(
+        scene=dict(
+            annotations=[
+                dict(
+                    x=100, y=0, z=30,
+                    text="Termination Shock",
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor='red'
+                ),
+                dict(
+                    x=-300, y=0, z=0,
+                    text="Heliotail",
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor='darkred'
+                ),
+                dict(
+                    x=150, y=50, z=0,
+                    text="Bow Shock",
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor='orange'
+                ),
+                dict(
+                    x=30, y=0, z=0,
+                    text="Solar Wind",
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor='blue'
+                )
+            ]
+        )
+    )
+    
+    return fig
+
+# Example 3: Side-by-side comparison of ecliptic vs galactic coordinates
+def heliosphere_coordinate_comparison():
+    planets = ['Jupiter', 'Saturn', 'Uranus', 'Neptune']
+    view_range = 250
+    
+    # Create figures in both coordinate systems
+    fig_ecliptic = build_heliosphere_fig(
+        planets, view_range, "Heliosphere (Ecliptic Coordinates)",
+        show_termination_shock=True, show_heliotail=True, show_bow_shock=True,
+        use_galactic=False
+    )
+    
+    fig_galactic = build_heliosphere_fig(
+        planets, view_range, "Heliosphere (Galactic Coordinates)",
+        show_termination_shock=True, show_heliotail=True, show_bow_shock=True, 
+        use_galactic=True
+    )
+    
+    # Create subplot with both views
+    subplot_fig = make_subplots(
+        rows=1, cols=2,
+        specs=[[{'type': 'scene'}, {'type': 'scene'}]],
+        subplot_titles=("Ecliptic View", "Galactic View")
+    )
+    
+    # Add traces from individual figures
+    for trace in fig_ecliptic.data:
+        subplot_fig.add_trace(trace, row=1, col=1)
+    
+    for trace in fig_galactic.data:
+        subplot_fig.add_trace(trace, row=1, col=2)
+    
+    # Update layout
+    subplot_fig.update_layout(
+        title="Heliosphere: Ecliptic vs Galactic Coordinate Systems",
+        width=1400,
+        height=700
+    )
+    
+    return subplot_fig
+
+# Example function to run
+def run_examples():
+    # Select which example to display
+    # return demo_termination_shock()
+    return full_heliosphere_visualization()
+    # return heliosphere_coordinate_comparison()
+
+# This would be called in a Jupyter notebook
+# run_examples()
 
 # Helper: create a sphere for a planet (updated for galactic coordinate option)
 def create_planet_sphere(x, y, z, radius, color, name, resolution=20, use_galactic=False):
@@ -461,6 +933,15 @@ def make_traces(planet_list, include_regions=True, use_planet_spheres=True,
                              hp_params['opacity'], use_galactic=use_galactic)
         hp_trace.name = 'Heliopause'
         traces.append(hp_trace)
+
+        # Termination Shock (spherical shell)
+        # ts_params = solar_regions['Termination Shock']
+        # ts_trace = create_shell(ts_params['inner_radius'], ts_params['outer_radius'],
+        #                         ts_params['tailward_offset'], ts_params['north_distance'],
+        #                         ts_params['port_side'], ts_params['color'], ts_params['opacity'], use_galactic=use_galactic)
+        # ts_trace.name = 'Termination Shock'
+        # traces.append(ts_trace)
+
     
     # Add custom ellipsoid if requested
     if include_ellipsoid:
