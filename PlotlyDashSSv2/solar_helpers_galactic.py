@@ -46,7 +46,7 @@ orbital_params = {
 solar_regions = {
     'Asteroid Belt': {'inner_radius': 2.2, 'outer_radius': 3.2, 'color': 'gray', 'opacity': 0.2},
     'Kuiper Belt': {'inner_radius': 30, 'outer_radius': 50, 'color': 'lightblue', 'opacity': 0.15},
-    'Heliopause': {'radius': 120, 'color': 'rgba(100,100,255,0.5)', 'opacity': 0.1},
+    # 'Heliopause': {'radius': 120, 'color': 'rgba(100,100,255,0.5)', 'opacity': 0.1},
     'Oort Cloud': {'inner_radius': 2000, 'outer_radius': 100000, 'color': 'rgba(200,200,255,0.3)', 'opacity': 0.05},
     'Termination Shock': {'inner_radius': 117, 'outer_radius': 120, 'tailward_offset': 32, 'north_distance': 27, 'port_side': 12,'color': 'rgba(255,100,100,0.3)', 'opacity': 0.2}, 
     'Heliosheath': {'inner_edge': 80, 'outer_edge': 100, 'windward_thickness': 90, 'color': 'rgba(255,100,100,0.3)', 'opacity': 0.2}
@@ -927,12 +927,12 @@ def make_traces(planet_list, include_regions=True, use_planet_spheres=True,
         kb_trace.name = 'Kuiper Belt'
         traces.append(kb_trace)
         
-        # Heliopause (spherical boundary)
-        hp_params = solar_regions['Heliopause']
-        hp_trace = create_shell(hp_params['radius'], None, hp_params['color'], 
-                             hp_params['opacity'], use_galactic=use_galactic)
-        hp_trace.name = 'Heliopause'
-        traces.append(hp_trace)
+        # # Heliopause (spherical boundary)
+        # hp_params = solar_regions['Heliopause']
+        # hp_trace = create_shell(hp_params['radius'], None, hp_params['color'], 
+        #                      hp_params['opacity'], use_galactic=use_galactic)
+        # hp_trace.name = 'Heliopause'
+        # traces.append(hp_trace)
 
         # Termination Shock (spherical shell)
         # ts_params = solar_regions['Termination Shock']
