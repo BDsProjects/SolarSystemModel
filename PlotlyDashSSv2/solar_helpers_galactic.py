@@ -693,8 +693,10 @@ solar_regions.update({
     },
     'Bow Shock': {
         'standoff_distance': 130,  # Distance from sun to bow shock nose (AU)
-        'radius': 180,             # Radius of bow shock at widest (AU)
-        'thickness': 15,           # Thickness of bow shock layer (AU)
+        'base_radius': 180,
+        'length': 1500,             # Radius of bow shock at widest (AU)           # Thickness of bow shock layer (AU)
+        'width_factor': 0.8,
+        'height_factor': 0.5,           
         'color': 'rgba(255,150,100,0.25)',
         'opacity': 0.2
     },

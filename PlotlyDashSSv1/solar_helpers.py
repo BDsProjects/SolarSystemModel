@@ -545,33 +545,6 @@ planet_colors = {
     'Orcus': '#bfb8b0'
 }
 
-# # Relative planetary radii (Earth = 1)
-# planet_relative_sizes = {
-#     'Mercury': 0.383, 'Venus': 0.950, 'Earth': 1.0, 'Mars': 0.532,
-#     'Jupiter': 11.21, 'Saturn': 9.45, 'Uranus': 4.01, 'Neptune': 3.88,
-#     'Ceres': 0.074, 'Pluto': 0.186, 'Eris': 0.183, 'Haumea': 0.16,
-#     'Makemake': 0.18, 'Sedna': 0.10
-# }
-
-# # Scale factor to make planets more visible while maintaining relative proportions
-# size_scale_factor = 0.15
-
-# orbital_params = {
-#     'Mercury': [0.387, 0.2056, 7.005, 48.331, 29.124, 0.008],
-#     'Venus':   [0.723, 0.0068, 3.39458, 76.680, 54.884, 0.02],
-#     'Earth':   [1.0,   0.0167, 0.00005, -11.26064, 102.94719, 0.02],
-#     'Mars':    [1.524, 0.0934, 1.850,    49.558,     286.502,   0.015],
-#     'Jupiter': [5.2,   0.0489, 1.303,    100.464,    273.867,   0.045],
-#     'Saturn':  [9.58,  0.0565, 2.485,    113.665,    339.392,   0.04],
-#     'Uranus':  [19.22, 0.0457, 0.773,    74.006,     96.998,    0.035],
-#     'Neptune':[30.05, 0.0113, 1.77,     131.783,    273.187,   0.035],
-#     'Ceres':   [2.77,  0.0758, 10.593,   80.393,     73.597,    0.005],
-#     'Pluto':   [39.48, 0.2488, 17.16,    110.299,    113.763,   0.01],
-#     'Eris':    [67.8,  0.44068,44.04,    35.95,      151.639,   0.01],
-#     'Haumea':  [43.13, 0.19126,28.19,    121.9,      239,       0.008],
-#     'Makemake':[45.79, 0.159,  29,       79,         296,       0.008],
-#     'Sedna':   [506,   0.8459, 11.93,    144.31,     311.46,    0.006]
-# }
 
 # Relative planetary radii (Earth = 1)
 planet_relative_sizes = {
