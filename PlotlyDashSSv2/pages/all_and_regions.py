@@ -133,7 +133,7 @@ def build_complete_figure():
         5000, 
         "All Planets with Solar System Regions",
         include_regions=True,
-        include_ellipsoid=True,  # Enable the ellipsoid
+        include_ellipsoid=False,  # Enable the ellipsoid
         ellipsoid_params={
             'inner_edge': -120,
             'length': 900,
