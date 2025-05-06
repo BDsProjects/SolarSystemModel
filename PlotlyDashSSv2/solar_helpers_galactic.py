@@ -7,7 +7,8 @@ planet_colors = {
     'Mercury': '#8c8680', 'Venus': '#e6c89c', 'Earth': '#4f71be', 'Mars': '#d1603d',
     'Jupiter': '#e0ae6f', 'Saturn': '#c5ab6e', 'Uranus': '#9fc4e7', 'Neptune': '#4f71be',
     'Ceres': '#8c8680', 'Pluto': '#ab9c8a', 'Eris': '#d9d9d9', 'Haumea': '#d9d9d9',
-    'Makemake': '#c49e6c', 'Sedna': '#bb5540'
+    'Makemake': '#c49e6c', 'Sedna': '#bb5540', 'Gonggong': '#bb6a50', 'Quaoar': '#b79e85',
+    'Orcus': '#bfb8b0'
 }
 
 # Relative planetary radii (Earth = 1)
@@ -15,7 +16,7 @@ planet_relative_sizes = {
     'Mercury': 0.383, 'Venus': 0.950, 'Earth': 1.0, 'Mars': 0.532,
     'Jupiter': 11.21, 'Saturn': 9.45, 'Uranus': 4.01, 'Neptune': 3.88,
     'Ceres': 0.074, 'Pluto': 0.186, 'Eris': 0.183, 'Haumea': 0.16,
-    'Makemake': 0.18, 'Sedna': 0.10
+    'Makemake': 0.18, 'Sedna': 0.10, 'Gonggong': 0.12, 'Quaoar': 0.09, 'Orcus': 0.09
 }
 
 # Scale factor to make planets more visible while maintaining relative proportions
@@ -35,7 +36,10 @@ orbital_params = {
     'Eris':    [67.8,  0.44068,44.04,    35.95,      151.639,   0.01],
     'Haumea':  [43.13, 0.19126,28.19,    121.9,      239,       0.008],
     'Makemake':[45.79, 0.159,  29,       79,         296,       0.008],
-    'Sedna':   [506,   0.8459, 11.93,    144.31,     311.46,    0.006]
+    'Sedna':   [506,   0.8459, 11.93,    144.31,     311.46,    0.006],
+    'Gonggong':[67.5,  0.5,    30.7,     101.2,      208.1,     0.007],
+    'Quaoar':  [43.7,  0.04,   8.0,      188.8,      25.2,      0.006],
+    'Orcus':   [39.42, 0.227,  20.6,     268.8,      73.12,     0.006]
 }
 
 # Solar system region parameters (AU)
