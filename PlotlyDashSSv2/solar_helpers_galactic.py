@@ -47,7 +47,10 @@ solar_regions = {
     'Asteroid Belt': {'inner_radius': 2.2, 'outer_radius': 3.2, 'color': 'gray', 'opacity': 0.2},
     'Kuiper Belt': {'inner_radius': 30, 'outer_radius': 50, 'color': 'lightblue', 'opacity': 0.15},
     'Heliopause': {'radius': 120, 'color': 'rgba(100,100,255,0.5)', 'opacity': 0.1},
-    'Oort Cloud': {'inner_radius': 2000, 'outer_radius': 100000, 'color': 'rgba(200,200,255,0.3)', 'opacity': 0.05}
+    'Oort Cloud': {'inner_radius': 2000, 'outer_radius': 100000, 'color': 'rgba(200,200,255,0.3)', 'opacity': 0.05},
+    'Termination Shock': {'inner_radius': 117, 'outer_radius': 120, 'tailward_offset': 32, 'north_distance': 27, 'port_side': 12,'color': 'rgba(255,100,100,0.3)', 'opacity': 0.2}, 
+    'Heliosheath': {'inner_edge': 80, 'outer_edge': 100, 'windward_thickness': 90, 'color': 'rgba(255,100,100,0.3)', 'opacity': 0.2}
+    # Need to add heliotail and bow shock here **********************************************
 }
 
 # NEW: Galactic Coordinate System class
@@ -261,6 +264,52 @@ def create_shell(inner_radius, outer_radius=None, color='gray', opacity=0.2, poi
         return go.Scatter3d(x=x, y=y, z=z, mode='markers',
                            marker=dict(size=1.5, color=color, opacity=opacity),
                            hoverinfo='none', showlegend=True)
+    
+# # Helper: create a shell for the termination shock (updated for galactic coordinate option)
+# def create_termination_shock(inner_radius, outer_radius, color='rgba(255,100,100,0.3)', opacity=0.2, points=40, use_galactic=False):
+#     """
+#     Create a shell for the termination shock.
+    
+#     Parameters:
+#     - inner_radius: Inner radius of the shell (AU)
+#     - outer_radius: Outer radius of the shell (AU)
+#     - color: Color of the shell
+#     - opacity: Opacity of the shell
+#     - points: Resolution of the shell mesh
+#     - use_galactic: Whether to convert to galactic coordinates
+    
+#     Returns:
+#     - A Plotly Surface trace object
+#     """
+
+#     u, v = np.mgrid[0:2*np.pi:resolution*1j, 0:np.pi:resolution//2*1j]
+    
+#     # Convert center to galactic coordinates if requested
+#     if use_galactic:
+#         x, y, z = galactic_converter.ecliptic_to_galactic(x, y, z)
+    
+#     # Create sphere surface coordinates
+#     sphere_x = x + radius * np.cos(u) * np.sin(v)
+#     sphere_y = y + radius * np.sin(u) * np.sin(v)
+#     sphere_z = z + radius * np.cos(v)
+    
+#     return go.Surface(
+#         x=sphere_x, y=sphere_y, z=sphere_z,
+#         colorscale=[[0, color], [1, color]],
+#         opacity=1.0, 
+#         showscale=False,
+#         name=name,
+#         hoverinfo='name',
+#         lighting=dict(
+#             ambient=0.8,  # Increase ambient light to see colors better
+#             diffuse=0.9,
+#             specular=0.3,
+#             roughness=0.5,
+#             fresnel=0.2
+#         )
+#     )
+
+
 
 # Helper: create a see-through ellipsoid (updated for galactic coordinate option)
 def create_ellipsoid(inner_edge=0, length=950, width_factor=0.75, height_factor=0.5, 
