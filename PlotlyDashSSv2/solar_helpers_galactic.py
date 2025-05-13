@@ -30,7 +30,7 @@ orbital_params = {
     'Jupiter': [5.2,   0.0489, 1.303,    100.464,    273.867,   0.045],
     'Saturn':  [9.58,  0.0565, 2.485,    113.665,    339.392,   0.04],
     'Uranus':  [19.22, 0.0457, 0.773,    74.006,     96.998,    0.035],
-    'Neptune':[30.05, 0.0113, 1.77,     131.783,    273.187,   0.035],
+    'Neptune': [30.05, 0.0113, 1.77,     131.783,    273.187,   0.035],
     'Ceres':   [2.77,  0.0758, 10.593,   80.393,     73.597,    0.005],
     'Pluto':   [39.48, 0.2488, 17.16,    110.299,    113.763,   0.01],
     'Eris':    [67.8,  0.44068,44.04,    35.95,      151.639,   0.01],
@@ -46,11 +46,58 @@ orbital_params = {
 solar_regions = {
     'Asteroid Belt': {'inner_radius': 2.2, 'outer_radius': 3.2, 'color': 'gray', 'opacity': 0.2},
     'Kuiper Belt': {'inner_radius': 30, 'outer_radius': 50, 'color': 'lightblue', 'opacity': 0.15},
-    # 'Heliopause': {'radius': 120, 'color': 'rgba(100,100,255,0.5)', 'opacity': 0.1},
     'Oort Cloud': {'inner_radius': 2000, 'outer_radius': 100000, 'color': 'rgba(200,200,255,0.3)', 'opacity': 0.05},
     'Termination Shock': {'inner_radius': 117, 'outer_radius': 120, 'tailward_offset': 32, 'north_distance': 27, 'port_side': 12,'color': 'rgba(255,100,100,0.3)', 'opacity': 0.2}, 
     'Heliosheath': {'inner_edge': 80, 'outer_edge': 100, 'windward_thickness': 90, 'color': 'rgba(255,100,100,0.3)', 'opacity': 0.2}
-    # Need to add heliotail and bow shock here **********************************************
+    # Bow shock and heliotail have a more complicated implementation seen below at another point. 
+}
+
+# New on first flight ***********
+
+# Main Moon orbital parameters by planet. 
+# Earth
+moons = {
+    'earth_moon': [384748, 385000, 363300, 405507, 0.0549006, 6.687, 5.15, 1.543, 27.322, 29.530],
+    'mars_phobos': [9376, 11.08 ,9234.42, 9517.58, 0.0151, 0.0, 26.04, 1.093, .31891023, 0.0 ], 
+    'mars_deimos': [23463.2, 6.27, 23455.5, 23470.9, 0.00033, 0.0, 27.58, 0.93, 1.263, 0.0], 
+        # Jupiter
+    'jupiter_io': [421800, 1821.3, 420000, 423400, 0.0041, 0.0, 0.04, 0.0, 1.769, 0.0],
+    'jupiter_europa': [671100, 1560.8, 664862, 677338, 0.009, 0.1, 0.47, 0.0, 3.551, 0.0],
+    'jupiter_ganymede': [1070400, 2634.1, 1069200, 1071600, 0.0013, 0.33, 0.21, 0.0, 7.155, 0.0],
+    'jupiter_callisto': [1882700, 2410.3, 1865800, 1899600, 0.0074, 0.0, 0.51, 0.0, 16.69, 0.0],
+    
+    # Saturn
+    'saturn_titan': [1221870, 2574.7, 1186680, 1257060, 0.0288, 0.0, 0.33, 0.0, 15.945, 0.0],
+    
+    # Uranus
+    'uranus_ariel': [191020, 578.9, 190900, 191140, 0.0012, 0.0, 0.04, 0.0, 2.520, 0.0],
+    'uranus_umbriel': [266000, 584.7, 265800, 266200, 0.0039, 0.0, 0.13, 0.0, 4.144, 0.0],
+    'uranus_titania': [435910, 788.9, 435730, 436090, 0.0011, 0.0, 0.08, 0.0, 8.706, 0.0],
+    'uranus_oberon': [583520, 761.4, 583000, 584000, 0.0014, 0.0, 0.07, 0.0, 13.46, 0.0],
+    'uranus_miranda': [129390, 235.8, 129370, 129410, 0.0013, 0.0, 4.34, 0.0, 1.413, 0.0],
+    
+    # Neptune
+    'neptune_triton': [354759, 1353.4, 354759, 354759, 0.000016, 0.0, 157.35, 0.0, 5.877, 0.0],
+    
+    # Pluto
+    'pluto_charon': [19596, 606.0, 19596, 19596, 0.0, 0.0, 0.0, 0.0, 6.387, 0.0]
+
+} 
+
+# Will need to fix the colors to what actually makes sense. 
+moon_colors = {
+    'Moon': '#8c8680', 'Phobos': '#e6c89c', 'Deimos': '#4f71be', 'Io': '#d1603d',
+    'Europa': '#e0ae6f', 'Ganymede': '#c5ab6e', 'Callisto': '#9fc4e7', 'Titan': '#4f71be',
+    'Ariel': '#8c8680', 'Umbriel': '#ab9c8a', 'Titania': '#d9d9d9', 'Oberon': '#d9d9d9',
+    'Miranda': '#c49e6c', 'Triton': '#bb5540', 'Charon': '#bb6a50'
+}
+
+# Relative planetary radii (Earth = 1), will need to calculate
+moon_relative_sizes = {
+    'Moon': 0.383, 'Phobos': 0.950, 'Deimos': 1.0, 'Io': 0.532,
+    'Europa': 11.21, 'Ganymede': 9.45, 'Callisto': 4.01, 'Titan': 3.88,
+    'Ariel': 0.074, 'Umbriel': 0.186, 'Titania': 0.183, 'Oberon': 0.16,
+    'Miranda': 0.18, 'Triton': 0.10, 'Charon': 0.12
 }
 
 # NEW: Galactic Coordinate System class
@@ -265,18 +312,6 @@ def create_shell(inner_radius, outer_radius=None, color='gray', opacity=0.2, poi
                            marker=dict(size=1.5, color=color, opacity=opacity),
                            hoverinfo='none', showlegend=True)
     
-# # Helper: create a shell for the termination shock (updated for galactic coordinate option)
-#def create_termination_shock(inner_radius, outer_radius, color='rgba(255,100,100,0.3)', opacity=0.2, points=40, use_galactic=False):
-#     """
-#     Create a shell for the termination shock.
-    
-#     Parameters:
-#     - inner_radius: Inner radius of the shell (AU)
-#     - outer_radius: Outer radius of the shell (AU)
-#     - color: Color of the shell
-#     - opacity: Opacity of the shell
-#     - points: Resolution of the shell mesh
-#     - use_galactic: Whether to convert to galactic coordinates
 
 def create_bow_shock_ellipsoid(standoff_distance=130, base_radius=180, length=1500, 
                              width_factor=0.85, height_factor=0.85, 
@@ -927,6 +962,38 @@ def create_planet_sphere(x, y, z, radius, color, name, resolution=20, use_galact
             fresnel=0.2
         )
     )
+
+# New on first flight ***********
+# Helper: Create a sphere for the moons selected (included atm) in the moons dictionary above. 
+def create_moon_sphere(x, y, z, radius, color, name, resolution=10, use_galactic=False):
+    u, v = np.mgrid[0:2*np.pi:resolution*1j, 0:np.pi:resolution//2*1j]
+    
+    # Convert center to galactic coordinates if requested
+    if use_galactic:
+        x, y, z = galactic_converter.ecliptic_to_galactic(x, y, z)
+    
+    # Create sphere surface coordinates
+    sphere_x = x + radius * np.cos(u) * np.sin(v)
+    sphere_y = y + radius * np.sin(u) * np.sin(v)
+    sphere_z = z + radius * np.cos(v)
+
+    return go.Surface(
+        x=sphere_x, y=sphere_y, z=sphere_z,
+        colorscale=[[0, color], [1, color]],
+        opacity=1.0, 
+        showscale=False,
+        name=name,
+        hoverinfo='name',
+        lighting=dict(
+            ambient=0.8,  # Increase ambient light to see colors better
+            diffuse=0.9,
+            specular=0.3,
+            roughness=0.5,
+            fresnel=0.2
+        )
+    )
+
+
 
 # Helper: create a disk (for asteroid belt) (updated for galactic coordinate option)
 def create_disk(inner_radius, outer_radius, color='gray', opacity=0.2, points=1000, use_galactic=False):
