@@ -1,6 +1,8 @@
 # solar_helpers_galactic.py
 import numpy as np
 import plotly.graph_objects as go
+from datetime import datetime, timedelta
+import math
 
 # Shared data (unchanged from original)
 planet_colors = {
@@ -18,6 +20,167 @@ planet_relative_sizes = {
     'Ceres': 0.074, 'Pluto': 0.186, 'Eris': 0.183, 'Haumea': 0.16,
     'Makemake': 0.18, 'Sedna': 0.10, 'Gonggong': 0.12, 'Quaoar': 0.09, 'Orcus': 0.09
 }
+
+
+# Add time calculation functions at the beginning
+def julian_date(date):
+    """
+    Calculate Julian Date from a datetime object.
+    
+    Parameters:
+    -----------
+    date : datetime
+        The date to convert
+        
+    Returns:
+    --------
+    float
+        Julian date
+    """
+    a = (14 - date.month) // 12
+    y = date.year + 4800 - a
+    m = date.month + 12 * a - 3
+    
+    jd = date.day + (153 * m + 2) // 5 + 365 * y + y // 4 - y // 100 + y // 400 - 32045
+    jd += (date.hour + date.minute/60.0 + date.second/3600.0) / 24.0
+    
+    return jd
+
+def julian_centuries_since_j2000(jd):
+    """
+    Calculate centuries since J2000.0 epoch.
+    
+    Parameters:
+    -----------
+    jd : float
+        Julian date
+        
+    Returns:
+    --------
+    float
+        Centuries since J2000.0
+    """
+    j2000 = 2451545.0  # Julian date for J2000.0 epoch
+    return (jd - j2000) / 36525.0
+
+# Enhanced orbital parameters with mean motion and epoch elements
+orbital_params_time = {
+    # Name: [a(AU), e, i(deg), Ω(deg), ω(deg), M0(deg), n(deg/day)]
+    # Where M0 is mean anomaly at epoch J2000.0, n is mean motion
+    'Mercury': [0.387, 0.2056, 7.005, 48.331, 29.124, 174.796, 4.09233445],
+    'Venus':   [0.723, 0.0068, 3.39458, 76.680, 54.884, 50.115, 1.60213034],
+    'Earth':   [1.0,   0.0167, 0.00005, -11.26064, 102.94719, 357.529, 0.98560028],
+    'Mars':    [1.524, 0.0934, 1.850, 49.558, 286.502, 19.373, 0.52402068],
+    'Jupiter': [5.2,   0.0489, 1.303, 100.464, 273.867, 20.020, 0.08308529],
+    'Saturn':  [9.58,  0.0565, 2.485, 113.665, 339.392, 317.020, 0.03344414],
+    'Uranus':  [19.22, 0.0457, 0.773, 74.006, 96.998, 142.238, 0.01172834],
+    'Neptune': [30.05, 0.0113, 1.77, 131.783, 273.187, 256.228, 0.00598927],
+    'Ceres':   [2.77,  0.0758, 10.593, 80.393, 73.597, 291.428, 0.21411192],
+    'Pluto':   [39.48, 0.2488, 17.16, 110.299, 113.763, 14.882, 0.00397671],
+    'Eris':    [67.8,  0.44068, 44.04, 35.95, 151.639, 204.16, 0.00176901],
+    'Haumea':  [43.13, 0.19126, 28.19, 121.9, 239, 293.42, 0.00321123],
+    'Makemake':[45.79, 0.159, 29, 79, 296, 85.13, 0.00292961],
+    'Sedna':   [506,   0.8459, 11.93, 144.31, 311.46, 358.62, 0.00007627],
+    'Gonggong':[67.5,  0.5, 30.7, 101.2, 208.1, 245.8, 0.00177736],
+    'Quaoar':  [43.7,  0.04, 8.0, 188.8, 25.2, 330.9, 0.00314073],
+    'Orcus':   [39.42, 0.227, 20.6, 268.8, 73.12, 71.93, 0.00398887]
+}
+
+def solve_kepler_equation(M, e, tolerance=1e-8):
+    """
+    Solve Kepler's equation M = E - e*sin(E) for eccentric anomaly E.
+    
+    Parameters:
+    -----------
+    M : float
+        Mean anomaly in radians
+    e : float
+        Eccentricity
+    tolerance : float
+        Convergence tolerance
+        
+    Returns:
+    --------
+    float
+        Eccentric anomaly in radians
+    """
+    E = M  # Initial guess
+    while True:
+        E_new = M + e * np.sin(E)
+        if abs(E_new - E) < tolerance:
+            break
+        E = E_new
+    return E
+
+def calculate_orbital_position(planet_name, time, use_time=True):
+    """
+    Calculate the position of a planet at a given time.
+    
+    Parameters:
+    -----------
+    planet_name : str
+        Name of the planet
+    time : datetime or float
+        Either a datetime object or days since J2000.0
+    use_time : bool
+        Whether to use time-based calculation or static position
+        
+    Returns:
+    --------
+    tuple
+        (x, y, z) position in AU (ecliptic coordinates)
+    """
+    if planet_name not in orbital_params_time:
+        raise ValueError(f"Unknown planet: {planet_name}")
+    
+    params = orbital_params_time[planet_name]
+    a, e, i, Ω, ω, M0, n = params
+    
+    if use_time:
+        # Convert time to days since J2000.0
+        if isinstance(time, datetime):
+            jd = julian_date(time)
+            days_since_j2000 = jd - 2451545.0
+        else:
+            days_since_j2000 = time
+        
+        # Calculate mean anomaly at given time
+        M = np.radians(M0 + n * days_since_j2000)
+        
+        # Solve Kepler's equation for eccentric anomaly
+        E = solve_kepler_equation(M, e)
+        
+        # Calculate true anomaly
+        nu = 2 * np.arctan2(np.sqrt(1 + e) * np.sin(E/2), 
+                           np.sqrt(1 - e) * np.cos(E/2))
+    else:
+        # Use static position based on original implementation
+        planet_index = list(orbital_params_time.keys()).index(planet_name)
+        nu = np.radians((planet_index * 30) % 360)
+    
+    # Convert angles to radians
+    i, Ω, ω = np.radians([i, Ω, ω])
+    
+    # Calculate position in orbital plane
+    r = a * (1 - e**2) / (1 + e * np.cos(nu))
+    x_orbit = r * np.cos(nu)
+    y_orbit = r * np.sin(nu)
+    
+    # Apply argument of perihelion
+    x_temp = x_orbit * np.cos(ω) - y_orbit * np.sin(ω)
+    y_temp = x_orbit * np.sin(ω) + y_orbit * np.cos(ω)
+    
+    # Apply inclination
+    y_incl = y_temp * np.cos(i)
+    z_incl = y_temp * np.sin(i)
+    
+    # Apply longitude of ascending node
+    x = x_temp * np.cos(Ω) - y_incl * np.sin(Ω)
+    y = x_temp * np.sin(Ω) + y_incl * np.cos(Ω)
+    z = z_incl
+    
+    return x, y, z
+
 
 # Scale factor to make planets more visible while maintaining relative proportions
 size_scale_factor = 0.15
@@ -278,6 +441,10 @@ class GalacticCoordinates:
 
 # Instantiate the coordinate converter
 galactic_converter = GalacticCoordinates()
+
+# Time based Calcs 
+
+
 
 # Helper: create a spherical shell (updated for galactic coordinate option)
 def create_shell(inner_radius, outer_radius=None, color='gray', opacity=0.2, points=40, use_galactic=False):
@@ -1691,3 +1858,458 @@ galactic_position_table(['Mercury', 'Venus', 'Earth', 'Mars'])
 # For interactive exploration (in Jupyter notebook)
 interactive_galactic_view()
 """
+
+# Time Based Calcs and fig generation
+
+def make_traces_time(planet_list, current_time=None, show_trails=True, trail_days=365, 
+                    include_regions=True, use_planet_spheres=True, 
+                    include_ellipsoid=False, ellipsoid_params=None, use_galactic=False):
+    """
+    Enhanced version of make_traces that includes time-based planet positions.
+    
+    Parameters:
+    -----------
+    planet_list : list
+        List of planet names
+    current_time : datetime or None
+        Time for planet positions (None uses J2000.0)
+    show_trails : bool
+        Whether to show orbital trails
+    trail_days : float
+        Number of days to show in trails
+    include_regions : bool
+        Whether to include solar system regions
+    use_planet_spheres : bool
+        Whether to use 3D spheres for planets
+    include_ellipsoid : bool
+        Whether to include custom ellipsoid
+    ellipsoid_params : dict
+        Parameters for custom ellipsoid
+    use_galactic : bool
+        Whether to use galactic coordinates
+    
+    Returns:
+    --------
+    list
+        List of Plotly traces
+    """
+    traces = []
+    
+    if current_time is None:
+        current_time = datetime(2000, 1, 1, 12, 0, 0)  # J2000.0 epoch
+    
+    # Sun sphere (unchanged)
+    u, v = np.mgrid[0:2*np.pi:30j, 0:np.pi:15j]
+    x_s = 0.05 * np.cos(u) * np.sin(v)
+    y_s = 0.05 * np.sin(u) * np.sin(v)
+    z_s = 0.05 * np.cos(v)
+    
+    if use_galactic:
+        x_s, y_s, z_s = galactic_converter.ecliptic_to_galactic(x_s, y_s, z_s)
+    
+    traces.append(go.Surface(
+        x=x_s, y=y_s, z=z_s,
+        colorscale=[[0,'yellow'],[1,'yellow']],
+        opacity=0.9, 
+        showscale=False,
+        name="Sun",
+        lighting=dict(ambient=0.9, diffuse=0.8, specular=0.5)
+    ))
+    
+    # Add regions if requested (unchanged)
+    if include_regions:
+        ab_params = solar_regions['Asteroid Belt']
+        traces.append(create_disk(ab_params['inner_radius'], ab_params['outer_radius'], 
+                                ab_params['color'], ab_params['opacity'], use_galactic=use_galactic))
+        
+        kb_params = solar_regions['Kuiper Belt']
+        kb_trace = create_shell(kb_params['inner_radius'], kb_params['outer_radius'], 
+                              kb_params['color'], kb_params['opacity'], use_galactic=use_galactic)
+        kb_trace.name = 'Kuiper Belt'
+        traces.append(kb_trace)
+    
+    # Add custom ellipsoid if requested (unchanged)
+    if include_ellipsoid and ellipsoid_params:
+        traces.append(create_ellipsoid(**ellipsoid_params, use_galactic=use_galactic))
+    
+    # Planets with time-based positions
+    for planet_name in planet_list:
+        # Get current position
+        x, y, z = calculate_orbital_position(planet_name, current_time)
+        
+        # Convert to galactic if needed
+        if use_galactic:
+            x, y, z = galactic_converter.ecliptic_to_galactic(x, y, z)
+        
+        # Create planet representation
+        if use_planet_spheres:
+            planet_radius = planet_relative_sizes[planet_name] * size_scale_factor
+            planet_trace = create_planet_sphere(
+                x, y, z, planet_radius, 
+                planet_colors[planet_name], planet_name,
+                use_galactic=False  # Already converted if needed
+            )
+            traces.append(planet_trace)
+        else:
+            traces.append(go.Scatter3d(
+                x=[x], y=[y], z=[z],
+                mode='markers', 
+                marker=dict(size=8, color=planet_colors[planet_name]), 
+                name=planet_name
+            ))
+        
+        # Add orbital trails if requested
+        if show_trails:
+            trail_points = 50
+            trail_times = np.linspace(-trail_days/2, trail_days/2, trail_points)
+            trail_x, trail_y, trail_z = [], [], []
+            
+            for dt in trail_times:
+                trail_time = current_time + timedelta(days=dt)
+                tx, ty, tz = calculate_orbital_position(planet_name, trail_time)
+                
+                if use_galactic:
+                    tx, ty, tz = galactic_converter.ecliptic_to_galactic(tx, ty, tz)
+                
+                trail_x.append(tx)
+                trail_y.append(ty)
+                trail_z.append(tz)
+            
+            # Add trail
+            opacity = 0.3 if dt < 0 else 0.6  # Dimmer for past, brighter for future
+            traces.append(go.Scatter3d(
+                x=trail_x, y=trail_y, z=trail_z,
+                mode='lines',
+                line=dict(color=planet_colors[planet_name], width=2),
+                opacity=opacity,
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+    
+    return traces
+
+def build_fig_time(subset, rng, title, current_time=None, show_trails=True, 
+                  trail_days=365, include_regions=True, include_oort=False, 
+                  use_planet_spheres=True, include_ellipsoid=False, 
+                  ellipsoid_params=None, use_galactic=False):
+    """
+    Enhanced version of build_fig that includes time functionality.
+    """
+    traces = make_traces_time(
+        subset, current_time, show_trails, trail_days,
+        include_regions, use_planet_spheres, 
+        include_ellipsoid, ellipsoid_params, use_galactic
+    )
+    
+    # Add Oort Cloud if requested
+    if include_oort:
+        oc_params = solar_regions['Oort Cloud']
+        oc_trace = create_shell(
+            oc_params['inner_radius'], oc_params['outer_radius'], 
+            oc_params['color'], oc_params['opacity'], use_galactic=use_galactic
+        )
+        oc_trace.name = 'Oort Cloud'
+        traces.append(oc_trace)
+    
+    # Set up axis labels based on coordinate system
+    if use_galactic:
+        x_label = 'X (Galactic Center Direction, AU)'
+        y_label = 'Y (Galactic Rotation Direction, AU)'
+        z_label = 'Z (North Galactic Pole, AU)'
+        title = f"{title} (Galactic Coordinates)"
+    else:
+        x_label = 'X (AU)'
+        y_label = 'Y (AU)'
+        z_label = 'Z (AU)'
+    
+    # Add time information to title
+    if current_time:
+        title += f" - {current_time.strftime('%Y-%m-%d')}"
+    
+    fig = go.Figure(data=traces)
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(range=[-rng,rng], title=x_label),
+            yaxis=dict(range=[-rng,rng], title=y_label),
+            zaxis=dict(range=[-rng,rng], title=z_label),
+            aspectmode='cube',
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.5)),
+        ),
+        margin=dict(l=10, r=10, t=50, b=10),
+        title=title,
+        height=700,
+        width=700,
+        autosize=True,
+        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+    )
+    
+    return fig
+
+def create_time_animation(planet_list, start_date, end_date, frames=30, rng=10,
+                        include_regions=True, use_galactic=False):
+    """
+    Create an animated visualization of the solar system over time.
+    
+    Parameters:
+    -----------
+    planet_list : list
+        List of planet names
+    start_date : datetime
+        Starting date for animation
+    end_date : datetime
+        Ending date for animation
+    frames : int
+        Number of frames in animation
+    rng : float
+        Range for visualization axes
+    include_regions : bool
+        Whether to include solar system regions
+    use_galactic : bool
+        Whether to use galactic coordinates
+    
+    Returns:
+    --------
+    plotly.graph_objects.Figure
+        Animated figure
+    """
+    # Create time steps
+    time_steps = []
+    total_days = (end_date - start_date).days
+    for i in range(frames):
+        time_steps.append(start_date + timedelta(days=i * total_days / (frames - 1)))
+    
+    # Create initial figure
+    fig = build_fig_time(planet_list, rng, "Solar System Animation", 
+                        current_time=start_date, show_trails=False,
+                        include_regions=include_regions, use_galactic=use_galactic)
+    
+    # Create frames
+    frames_list = []
+    for i, time in enumerate(time_steps):
+        frame_data = []
+        
+        # Update planet positions
+        for j, planet_name in enumerate(planet_list):
+            x, y, z = calculate_orbital_position(planet_name, time)
+            
+            if use_galactic:
+                x, y, z = galactic_converter.ecliptic_to_galactic(x, y, z)
+            
+            # Update planet sphere or marker position
+            if use_planet_spheres:
+                planet_radius = planet_relative_sizes[planet_name] * size_scale_factor
+                u, v = np.mgrid[0:2*np.pi:20*1j, 0:np.pi:10*1j]
+                sphere_x = x + planet_radius * np.cos(u) * np.sin(v)
+                sphere_y = y + planet_radius * np.sin(u) * np.sin(v)
+                sphere_z = z + planet_radius * np.cos(v)
+                
+                frame_data.append(go.Surface(
+                    x=sphere_x, y=sphere_y, z=sphere_z,
+                    colorscale=[[0, planet_colors[planet_name]], 
+                              [1, planet_colors[planet_name]]],
+                    showscale=False,
+                    name=planet_name
+                ))
+            else:
+                frame_data.append(go.Scatter3d(
+                    x=[x], y=[y], z=[z],
+                    mode='markers',
+                    marker=dict(size=8, color=planet_colors[planet_name]),
+                    name=planet_name
+                ))
+        
+        frames_list.append(go.Frame(
+            data=frame_data,
+            name=str(i),
+            layout=dict(title=f"Solar System - {time.strftime('%Y-%m-%d')}")
+        ))
+    
+    fig.frames = frames_list
+    
+    # Add animation controls
+    fig.update_layout(
+        updatemenus=[
+            dict(
+                type='buttons',
+                showactive=False,
+                buttons=[
+                    dict(label='Play',
+                         method='animate',
+                         args=[None, {'frame': {'duration': 100, 'redraw': True},
+                                     'fromcurrent': True}]),
+                    dict(label='Pause',
+                         method='animate',
+                         args=[[None], {'frame': {'duration': 0, 'redraw': False},
+                                       'mode': 'immediate',
+                                       'transition': {'duration': 0}}])
+                ]
+            )
+        ],
+        sliders=[{
+            'active': 0,
+            'yanchor': 'top',
+            'xanchor': 'left',
+            'currentvalue': {
+                'font': {'size': 16},
+                'prefix': 'Date: ',
+                'visible': True,
+                'xanchor': 'right'
+            },
+            'steps': [
+                {'args': [[str(i)], 
+                         {'frame': {'duration': 100, 'redraw': True},
+                          'mode': 'immediate',
+                          'transition': {'duration': 0}}],
+                 'label': time_steps[i].strftime('%Y-%m-%d'),
+                 'method': 'animate'}
+                for i in range(frames)
+            ]
+        }]
+    )
+    
+    return fig
+
+# Example usage functions
+def demo_time_based_positions():
+    """
+    Demo showing planets at different times
+    """
+    # Current date
+    current_date = datetime.now()
+    
+    # Create visualization for current date
+    planets = ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter']
+    fig = build_fig_time(
+        planets, 10, "Inner Solar System", 
+        current_time=current_date, 
+        show_trails=True, 
+        trail_days=90
+    )
+    
+    return fig
+
+def demo_planetary_alignment(date=None):
+    """
+    Show all planets at a specific date to check for alignments
+    """
+    if date is None:
+        date = datetime(2024, 1, 1)
+    
+    all_planets = list(orbital_params_time.keys())[:8]  # Main planets only
+    
+    fig = build_fig_time(
+        all_planets, 35, f"Planetary Positions - {date.strftime('%Y-%m-%d')}", 
+        current_time=date, 
+        show_trails=False
+    )
+    
+    return fig
+
+def demo_animation():
+    """
+    Create an animation of planetary motion
+    """
+    start = datetime(2024, 1, 1)
+    end = datetime(2025, 1, 1)
+    
+    fig = create_time_animation(
+        ['Mercury', 'Venus', 'Earth', 'Mars'],
+        start, end, frames=24, rng=2
+    )
+    
+    return fig
+
+# Additional time-related utility functions
+def find_planetary_conjunctions(planet1, planet2, start_date, end_date, threshold=5.0):
+    """
+    Find when two planets are in conjunction (appear close together in the sky).
+    
+    Parameters:
+    -----------
+    planet1, planet2 : str
+        Names of the planets
+    start_date, end_date : datetime
+        Date range to search
+    threshold : float
+        Maximum angular separation in degrees to consider conjunction
+    
+    Returns:
+    --------
+    list
+        List of (date, separation) tuples for conjunctions
+    """
+    conjunctions = []
+    
+    # Check every day in the range
+    current_date = start_date
+    while current_date <= end_date:
+        # Get positions
+        x1, y1, z1 = calculate_orbital_position(planet1, current_date)
+        x2, y2, z2 = calculate_orbital_position(planet2, current_date)
+        
+        # Calculate angular separation as seen from origin (Sun)
+        r1 = np.sqrt(x1**2 + y1**2 + z1**2)
+        r2 = np.sqrt(x2**2 + y2**2 + z2**2)
+        
+        dot_product = (x1*x2 + y1*y2 + z1*z2) / (r1 * r2)
+        separation = np.degrees(np.arccos(np.clip(dot_product, -1, 1)))
+        
+        if separation <= threshold:
+            conjunctions.append((current_date, separation))
+        
+        current_date += timedelta(days=1)
+    
+    return conjunctions
+
+def get_planet_distances_from_earth(date):
+    """
+    Calculate distances of all planets from Earth at a given date.
+    
+    Parameters:
+    -----------
+    date : datetime
+        The date for calculation
+    
+    Returns:
+    --------
+    dict
+        Dictionary of planet names to distances in AU
+    """
+    # Get Earth's position
+    earth_x, earth_y, earth_z = calculate_orbital_position('Earth', date)
+    
+    distances = {}
+    for planet in orbital_params_time.keys():
+        if planet == 'Earth':
+            continue
+            
+        # Get planet position
+        x, y, z = calculate_orbital_position(planet, date)
+        
+        # Calculate distance
+        distance = np.sqrt((x - earth_x)**2 + (y - earth_y)**2 + (z - earth_z)**2)
+        distances[planet] = distance
+    
+    return distances
+
+def calculate_synodic_period(planet1, planet2):
+    """
+    Calculate the synodic period between two planets.
+    
+    Parameters:
+    -----------
+    planet1, planet2 : str
+        Names of the planets
+    
+    Returns:
+    --------
+    float
+        Synodic period in days
+    """
+    n1 = orbital_params_time[planet1][6]  # Mean motion in deg/day
+    n2 = orbital_params_time[planet2][6]
+    
+    # Synodic period formula
+    synodic = 360.0 / abs(n1 - n2)
+    
+    return synodic
