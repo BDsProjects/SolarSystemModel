@@ -2046,7 +2046,7 @@ def build_fig_time(subset, rng, title, current_time=None, show_trails=True,
     return fig
 
 def create_time_animation(planet_list, start_date, end_date, frames=30, rng=10,
-                        include_regions=True, use_galactic=False):
+                        include_regions=True, use_galactic=False, use_planet_spheres=True):
     """
     Create an animated visualization of the solar system over time.
     
@@ -2066,6 +2066,8 @@ def create_time_animation(planet_list, start_date, end_date, frames=30, rng=10,
         Whether to include solar system regions
     use_galactic : bool
         Whether to use galactic coordinates
+    use_planet_spheres : bool
+        Whether to use 3D spheres for planets
     
     Returns:
     --------
@@ -2081,7 +2083,8 @@ def create_time_animation(planet_list, start_date, end_date, frames=30, rng=10,
     # Create initial figure
     fig = build_fig_time(planet_list, rng, "Solar System Animation", 
                         current_time=start_date, show_trails=False,
-                        include_regions=include_regions, use_galactic=use_galactic)
+                        include_regions=include_regions, use_galactic=use_galactic,
+                        use_planet_spheres=use_planet_spheres)
     
     # Create frames
     frames_list = []
