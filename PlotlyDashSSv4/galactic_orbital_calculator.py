@@ -233,7 +233,7 @@ def main():
     
     # Generate dates from 1900 to 2500 (monthly intervals)
     start_date = datetime(1900, 1, 1)
-    end_date = datetime(2500, 12, 31)
+    end_date = datetime(2260, 12, 31)
     
     # Calculate total number of months for progress bar
     total_months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month) + 1
